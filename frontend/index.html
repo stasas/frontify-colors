@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Frontify colors demo</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+  <div id="app" class="container"></div>
+  <script type="text/babel">
+    const apiUrl = 'http://127.0.0.1:9000/api/colors';
+    axios.defaults.headers.common.Accept = 'application/json';
+
+    const Message = ({ error, message }) => (<div className={error ? 'alert alert-danger' : 'alert alert-success'}>{message}</div>);
+
+    const Color = ({ color, deleteHandler }) => (
+      <li className="list-group-item">
+        <button type="button" className="btn btn-danger btn-sm mr-1" onClick={() => deleteHandler(color.color_id)}>x</button>
+        <span>Name: {color.name}</span> <span>Value: {color.value}</span>
+      </li>
+    );
+
+    class App extends React.Component {
+      state = {
+        loading: true,
+        colors: [],
+        error: null,
+        message: '',
+        color: null,
+        name: '',
+        value: '',
+      };
+
+      getColors = async () => {
+        try {
+          const response = await axios.get(apiUrl);
+          this.setState({ colors: response.data, error: false });
+        } catch ({ response }) {
+          this.setState({ error: true, message: response.data.error });
+        }
+      }
+
+      getColor = async (id) => {
+        try {
+          const response = await axios.get(`${apiUrl}/${id}`);
+          this.setState({ color: response.data, error: false });
+        } catch ({ response }) {
+          this.setState({ error: true, message: response.data.error });
+        }
+      }
+
+      deleteColor = async (id) => {
+        try {
+          const response = await axios.delete(`${apiUrl}/${id}`);
+          this.setState({ message: response.data.message, error: false });
+          this.getColors();
+        } catch ({ response }) {
+          this.setState({ error: true, message: response.data.error });
+        }
+      }
+
+      createColor = async () => {
+        try {
+          const { name, value } = this.state;
+          const response = await axios.post(`${apiUrl}`, { name, value });
+          this.setState({ message: response.data.message, error: false, name: '', value: '' });
+          this.getColors();
+        } catch ({ response }) {
+          this.setState({ error: true, message: response.data.error });
+        }
+      }
+
+      componentDidMount() {
+        this.getColors();
+      }
+
+      render() {
+        const { error, message, colors, color, name, value } = this.state;
+        return (
+          <div className="mt-3">
+            {message && <Message error={error} message={message} />}
+            <h1>Color list <button type="button" className="btn btn-primary" onClick={this.getColors}>Refresh</button></h1>
+            <ul className="list-group">
+              {colors.map((color) => <Color key={color.color_id} color={color} deleteHandler={this.deleteColor} />)}
+            </ul>
+
+            {color && <React.Fragment><h1>Single color</h1><Color key={color.color_id} color={color} /></React.Fragment>}
+            <h1>Create color</h1>
+            <div className="form-group">
+              <label>
+                Name: <input className="form-control form-control-sm" value={name} onChange={(e) => this.setState({ name: e.target.value })} />
+              </label>
+            </div>
+            <div className="form-group">
+              <label>
+                Value: <input className="form-control form-control-sm" value={value} onChange={(e) => this.setState({ value: e.target.value })} />
+              </label>
+            </div>
+            <button type="button" className="btn btn-primary" onClick={this.createColor}>Create</button>
+          </div >
+        );
+      }
+    }
+
+    ReactDOM.render(<App />, document.getElementById('app'));
+  </script>
+</body>
+
+</html>
